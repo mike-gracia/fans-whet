@@ -3,8 +3,14 @@ import websockets
 import json
 import math
 import time
+import datetime
 
 enable_GPIO = True
+LED_MAX = 4095
+MIN_LIGHT_AVG_TO_START = 20    #percentage of light to start fans
+MIN_FAN_SPEED = 30              #slowest fans speed setting
+
+
 try:
     import RPi.GPIO as GPIO
 except:
@@ -12,33 +18,33 @@ except:
     enable_GPIO = False
 
 
-fan_speed = 0
 print("starting fan control")
 
 async def handler_consumer():
     async with websockets.connect('ws://localhost:7999/chat/websocket') as websocket:
         while True:
-            message = await websocket.recv()
-            consumer(message)
+            message = json.loads( await websocket.recv() )
+            if 'status' in message:
+                consumer(message)
 
 
 def consumer(message):
-    j = json.loads(message)
-    
-    if 'status' in j: 
-        #print(json.dumps(j))
-        cnt = 0
-        avg = 0
-        for c in j['status']:
-            avg += c['cur']
-            cnt += 1
-            print("{} - {}".format(cnt, c['cur']))
+    global fan_speed
+    cnt = 0
+    avg = 0
+    for c in message['status']:
+        avg += c['cur']
+        cnt += 1
         
-        pwm_avg = avg / cnt
-        per_avg = math.ceil( (pwm_avg / 4095) * 100 )
-        fan_speed = per_avg if per_avg > 20 else 0
-        print("AVERAGE = {} | %AVG = {} | fan_speed = {}".format(pwm_avg, per_avg, fan_speed))
+    pwm_avg = avg / cnt
+    per_avg = math.ceil( (pwm_avg / 4095) * 100 )
+
+
+    if per_avg > MIN_LIGHT_AVG_TO_START:
+        fan_speed = max(per_avg, MIN_FAN_SPEED)
         setFanSpeed(fan_speed)
+
+    print('{:%H:%M:%S}: AVERAGE = {} | %AVG = {} | fan_speed = {}'.format(datetime.datetime.now(), pwm_avg, per_avg, fan_speed))
 
 def createFan():
     if enable_GPIO:
@@ -46,7 +52,6 @@ def createFan():
         FREQ = 25
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(PIN, GPIO.OUT)
-
         p = GPIO.PWM(PIN, FREQ)
         p.start(100)
         time.sleep(5)
@@ -56,17 +61,13 @@ def createFan():
 
 
 def setFanSpeed(speed):
-     if enable_GPIO:
+    speed = min ( max(speed, 0) , 100)
+    if enable_GPIO:
          p.ChangeDutyCycle(speed)
 
 
-
+fan_speed = 0
 p = createFan()
-
-
-
-
-
 asyncio.get_event_loop().run_until_complete(handler_consumer())
 
 
