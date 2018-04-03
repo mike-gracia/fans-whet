@@ -42,8 +42,10 @@ def consumer(message):
 
     if per_avg > MIN_LIGHT_AVG_TO_START:
         fan_speed = max(per_avg, MIN_FAN_SPEED)
-        setFanSpeed(fan_speed)
+    else
+        fan_speed = 0
 
+    setFanSpeed(fan_speed)
     print('{:%H:%M:%S}: AVERAGE = {} | %AVG = {} | fan_speed = {}'.format(datetime.datetime.now(), pwm_avg, per_avg, fan_speed))
 
 def createFan():
