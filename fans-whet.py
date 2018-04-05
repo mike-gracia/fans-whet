@@ -21,15 +21,16 @@ except:
 
 print("starting fan control")
 
-async def handler_consumer():
+async def message_handler_async():
     async with websockets.connect('ws://localhost:7999/chat/websocket') as websocket:
         while True:
             message = json.loads( await websocket.recv() )
             if 'status' in message:
-                consumer(message)
+                consume_message(message)
+                await websocket.send(create_message())
 
 
-def consumer(message):
+def consume_message(message):
     global fan_speed
     cnt = 0
     avg = 0
@@ -48,6 +49,21 @@ def consumer(message):
 
     setFanSpeed(fan_speed)
     print('{:%H:%M:%S}: AVERAGE = {} | %AVG = {} | fan_speed = {}'.format(datetime.datetime.now(), pwm_avg, per_avg, fan_speed))
+
+def create_message():
+    msg = {}
+    msg['value'] = fan_speed
+    msg['active_at_perc'] = MIN_LIGHT_AVG_TO_SPIN
+    msg['min_speed'] = MIN_FAN_SPEED
+    msg['enabled'] = enable_GPIO
+
+    msg_obj = {}
+    msg_obj['FanContainer'] = []
+    msg_obj['FanContainer'].append(msg)
+
+    return json.dumps(msg_obj)
+
+
 
 def createFan():
     if enable_GPIO:
@@ -69,7 +85,7 @@ def setFanSpeed(speed):
 
 fan_speed = 0
 p = createFan()
-asyncio.get_event_loop().run_until_complete(handler_consumer())
+asyncio.get_event_loop().run_until_complete(message_handler_async())
 
 
 p.stop()
