@@ -5,16 +5,17 @@ import math
 import time
 import datetime
 
-enable_GPIO = True
-LED_MAX = 4095
-MIN_LIGHT_AVG_TO_START = 20    #percentage of light to start fans
+enable_GPIO = True              #auto sets to false if cant import gpio
+LED_MAX = 4095                  #for converting to percentages
+MIN_LIGHT_AVG_TO_SPIN = 15     #percentage of light to start fans
 MIN_FAN_SPEED = 30              #slowest fans speed setting
-
+PIN = 12                        #signal pin, must support pwm? Not sure if this is the only one by default
+FREQ = 25                       #pwm freq
 
 try:
     import RPi.GPIO as GPIO
 except:
-    print("Unable to import GPIO - this probably isnt a Raspberry Pi")
+    print("Unable to import GPIO - this probably isnt a Raspberry Pi or you need to install it")
     enable_GPIO = False
 
 
@@ -40,7 +41,7 @@ def consumer(message):
     per_avg = math.ceil( (pwm_avg / 4095) * 100 )
 
 
-    if per_avg > MIN_LIGHT_AVG_TO_START:
+    if per_avg > MIN_LIGHT_AVG_TO_SPIN:
         fan_speed = max(per_avg, MIN_FAN_SPEED)
     else:
         fan_speed = 0
@@ -50,8 +51,6 @@ def consumer(message):
 
 def createFan():
     if enable_GPIO:
-        PIN = 12
-        FREQ = 25
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(PIN, GPIO.OUT)
         p = GPIO.PWM(PIN, FREQ)
