@@ -7,7 +7,7 @@ import datetime
 
 enable_GPIO = True              #auto sets to false if cant import gpio
 LED_MAX = 4095                  #for converting to percentages
-MIN_LIGHT_AVG_TO_SPIN = 10      #percentage of light to start fans
+MIN_LIGHT_AVG_TO_SPIN = 10       #percentage of light to start fans
 MIN_FAN_SPEED = 30              #slowest fans speed setting
 PIN = 12                        #signal pin, must support pwm? Not sure if this is the only one by default
 FREQ = 25                       #pwm freq
